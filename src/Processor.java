@@ -1,13 +1,20 @@
 import java.io.File;
 
+
 import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
 import java.util.*;
+
+
+
 public class Processor {
-static String [] memory=new String [2048];
+static Object [] memory=new Object [2048];
 static String pc="00000000000000000000000000000000";
 static int mp=0;
 static String [] registers=new String[32];
+static int cycles=1;
+static Instruction []phase=new Instruction[5];
+
 
 public static void readFile (String filename) {
 	String returned ="";
@@ -86,7 +93,9 @@ public  static  void parse(String data) {
 		}
 		
 	}
-	memory[mp]=instruction;
+	Instruction I = new Instruction();
+	I.inst=instruction;
+	memory[mp]=I;
 	mp++;
 }
 public static String toBinary(String x,int n) {
@@ -95,34 +104,25 @@ public static String toBinary(String x,int n) {
 	}
 	return x;
 }
-public static void InstructionFetch() {
-while(Integer.parseInt(pc,2)<mp) {
-	String instruction = memory[Integer.parseInt(pc,2)];
-	InstructionDecode(instruction);
-	int temp=Integer.parseInt(pc,2)+1;
-	pc=toBinary(Integer.toBinaryString(temp),32);
-	}
-}
-public static void InstructionDecode(String instruction) {
-	   String opcode=""; 
-	   String rs="";      
-	   String rt ="";     
-	   String rd ="";      
-	   String shamt="" ;   
-	   String imm ="";    
-	   String address =""; 
-	   String rs_value="";
-	   String rt_value="";
+public static Instruction InstructionFetch() {
+	Instruction instruction =(Instruction)memory[Integer.parseInt(pc,2)];
+	int temp = Integer.parseInt(pc,2);
+	temp++;  	
+	pc = toBinary(Integer.toBinaryString(temp),32);
+	return instruction;
 	
+}
+public static void InstructionDecode(Instruction I) {
+
 	   
 	   for(int i=0;i<4;i++) {
-		   opcode+=instruction.charAt(i);
+		 I.opcode+=I.inst.charAt(i);
 		  
 	   }
 	   
 	   for(int i=4;i<9;i++) {
 		  
-			   rd+=instruction.charAt(i);   
+			 I.rd+=I.inst.charAt(i);  
 		   }
 		
 		
@@ -131,102 +131,103 @@ public static void InstructionDecode(String instruction) {
 	
 	   
 	   for(int i=9;i<14;i++) {
-		   rs+=instruction.charAt(i);
+		   I.rs+=I.inst.charAt(i);
 	   }
 	   
 	   for(int i=14;i<19;i++) {
-		   rt+=instruction.charAt(i);
+			 I.rt+=I.inst.charAt(i);
 	   }
 	   
 	   
 	   for(int i=19;i<32;i++) {
-		   shamt+=instruction.charAt(i);
+			 I.shamt+=I.inst.charAt(i);
 	   }
 	   
 	   for(int i=14;i<32;i++) {
-		   imm+=instruction.charAt(i);
+			 I.imm+=I.inst.charAt(i);
 	   }
 	
 	   
 	   for(int i=4;i<32;i++) {
-		   address+=instruction.charAt(i);
+			 I.address+=I.inst.charAt(i);
 	   }
-	   if(Integer.parseInt(rs,2)==0) {
-		   rs_value="00000";
-	   }
-	   else {
-		   rs_value=registers[Integer.parseInt(rs,2)];
-	   }
-	   if(Integer.parseInt(rt,2)==0) {
-		   rt_value="00000";
+	   if(Integer.parseInt(I.rs,2)==0) {
+		  I. rs_value="00000";
 	   }
 	   else {
-	   rt_value=registers[Integer.parseInt(rt,2)];
+		 I.rs_value=registers[Integer.parseInt(I.rs,2)];
+	   }
+	   if(Integer.parseInt(I.rt,2)==0) {
+		  I.rt_value="00000";
+	   }
+	   else {
+	  I.rt_value=registers[Integer.parseInt(I.rt,2)];
 	   }
 	
 	
-	   System.out.println("Instruction "+Integer.parseInt(pc,2));
-       System.out.println("opcode = "+opcode);
-       System.out.println("rs = "+rs);
-       System.out.println("rt = "+rt);
-       System.out.println("rd = "+rd);
-       System.out.println("shift amount = "+shamt);
-       System.out.println("immediate = "+imm);
-       System.out.println("address = "+address);
-       System.out.println("value[rs] = "+rs_value);
-       System.out.println("value[rt] = "+rt_value);
-       System.out.println("----------");
-     
-       Execute(opcode,shamt,address,imm,rs_value,rt_value,rd);
+//   System.out.println("Instruction "+Integer.parseInt(pc,2));
+//       System.out.println("opcode = "+I.opcode);
+//       System.out.println("rs = "+I.rs);
+//       System.out.println("rt = "+I.rt);
+//       System.out.println("rd = "+I.rd);
+//       System.out.println("shift amount = "+I.shamt);
+//       System.out.println("immediate = "+I.imm);
+//       System.out.println("address = "+I.address);
+//       System.out.println("value[rs] = "+I.rs_value);
+//       System.out.println("value[rt] = "+I.rt_value);
+//       System.out.println("----------");
+//     
+  
   
      
       
 }
 
-private static void Execute(String opcode, String shamt, String address,String imm, String rs_value, String rt_value,String rd) {
-	String temp="";
-	switch(opcode) {
-	 case "0000":temp=ADD(rs_value,rt_value) ;break;
-	 case "0001":temp=SUB(rs_value,rt_value)  ;break;
-	 case "0010":temp=MUL(rs_value,rt_value)  ;break;
-	 case "0011":temp=MOVI(imm) ;break;
-	 case "0100":temp=JEQ(toBinary(registers[Integer.parseInt(rd,2)],5),rs_value,imm);break;
-	 case "0101":temp=AND(rs_value,rt_value);break;
-	 case "0110":temp=XORI(rs_value,imm);break;
-	 case "0111":temp=JMP(address)  ;break;
-	 case "1000":temp=LSL(rs_value,shamt)  ;break;
-	 case "1001":temp=LSR(rs_value,shamt)  ;break;
-	 case "1010":temp=MOVR(rs_value,imm) ;break;
-	 case "1011":temp=MOVM(rs_value,imm);break;
+private static void Execute(Instruction I) {
+	
+	switch(I.opcode) {
+	 case "0000":I.temp=ADD(I.rs_value,I.rt_value) ;break;
+	 case "0001":I.temp=SUB(I.rs_value,I.rt_value)  ;break;
+	 case "0010":I.temp=MUL(I.rs_value,I.rt_value)  ;break;
+	 case "0011":I.temp=MOVI(I.imm) ;break;
+	 case "0100":I.temp=JEQ(toBinary(registers[Integer.parseInt(I.rd,2)],5),I.rs_value,I.imm);break;
+	 case "0101":I.temp=AND(I.rs_value,I.rt_value);break;
+	 case "0110":I.temp=XORI(I.rs_value,I.imm);break;
+	 case "0111":I.temp=JMP(I.address)  ;break;
+	 case "1000":I.temp=LSL(I.rs_value,I.shamt)  ;break;
+	 case "1001":I.temp=LSR(I.rs_value,I.shamt)  ;break;
+	 case "1010":I.temp=MOVR(I.rs_value,I.imm) ;break;
+	 case "1011":I.temp=MOVM(I.rs_value,I.imm);break;
 	}
-	MEM(opcode,temp,rd);
+
+	
 	
 			
 }
 
-public static void MEM(String opcode,String value,String rd) {
-	String temp="";
-	if(opcode.equals("1010")) {
-	temp=memory[Integer.parseInt(temp,2)];	
+private static void MEM(Instruction I) {
+
+	if(I.opcode.equals("1010")) {
+	I.temp=(String)memory[Integer.parseInt(I.temp,2)];	
 	}
 	else
-		if(opcode.equals("1011")) {
-			memory[Integer.parseInt(temp,2)]=registers[Integer.parseInt(rd,2)];
+		if(I.opcode.equals("1011")) {
+			memory[Integer.parseInt(I.temp,2)]=registers[Integer.parseInt(I.rd,2)];
 		}
 	
-	WB(opcode,value,rd);
+	
 }
-public static void WB(String opcode,String value,String rd) {
-	switch(opcode) {
-	 case "0100":pc=value ;break;
-	 case "0111":pc=value ;break;
-	 default:registers[Integer.parseInt(rd,2)]=value;break;
+private static void WB(Instruction I) {
+	switch(I.opcode) {
+	 case "0100":pc=I.temp ;break;
+	 case "0111":pc=I.temp ;break;
+	 default:registers[Integer.parseInt(I.rd,2)]=I.temp;break;
 	}
 }
 
 
    
-public  static String ADD(String operand1,String operand2) {
+private  static String ADD(String operand1,String operand2) {
 		
 	int result=Integer.parseInt(operand1,2)+Integer.parseInt(operand2,2);
 	String res=toBinary(Integer.toBinaryString(result),5);
@@ -238,7 +239,7 @@ public  static String ADD(String operand1,String operand2) {
 
 
 
-public  static String SUB(String operand1,String operand2) {
+private  static String SUB(String operand1,String operand2) {
 	
 	int result=Integer.parseInt(operand1,2)-Integer.parseInt(operand2,2);
 	String res=toBinary(Integer.toBinaryString(result),5);
@@ -247,7 +248,7 @@ public  static String SUB(String operand1,String operand2) {
 	return res;
 	
 }
-public  static String MUL(String operand1,String operand2) {
+private  static String MUL(String operand1,String operand2) {
 	
 	int result=Integer.parseInt(operand1,2)*Integer.parseInt(operand2,2);
 	String res=toBinary(Integer.toBinaryString(result),5);
@@ -256,11 +257,11 @@ public  static String MUL(String operand1,String operand2) {
 	return res;
 	
 }
-public static String MOVI (String imm) {
+private static String MOVI (String imm) {
 	return imm;
 	
 }
-public static String JEQ (String rs,String rt,String imm) {
+private static String JEQ (String rs,String rt,String imm) {
 	String res="";
 	int temp=0;
 	if(rs.equals(rt)) {
@@ -278,7 +279,7 @@ public static String JEQ (String rs,String rt,String imm) {
 }
 
 
-public  static String AND(String operand1,String operand2) {
+private  static String AND(String operand1,String operand2) {
 	
 	int result=Integer.parseInt(operand1,2)&Integer.parseInt(operand2,2);
 	String res=toBinary(Integer.toBinaryString(result),5);
@@ -288,7 +289,7 @@ public  static String AND(String operand1,String operand2) {
 	
 }
 
-public  static String XORI(String operand1,String imm) {
+private  static String XORI(String operand1,String imm) {
 	
 	int result=Integer.parseInt(operand1,2)^Integer.parseInt(imm,2);
 	String res=toBinary(Integer.toBinaryString(result),5);
@@ -297,7 +298,7 @@ public  static String XORI(String operand1,String imm) {
 	return res;
 	
 }
-public static String JMP(String address) {
+private static String JMP(String address) {
 	String temp="";
 	for(int i=28;i<32;i++) {
 		temp+=pc.charAt(i);
@@ -306,41 +307,126 @@ public static String JMP(String address) {
 	return temp;
 }
 
-public static String LSL(String operand1,String shamt) {
+private static String LSL(String operand1,String shamt) {
 	   int i = Integer.parseInt(operand1, 2);
 	   String shiftedi =toBinary(Integer.toBinaryString(i<<Integer.parseInt(shamt,2)),5);
 	   
 	   return shiftedi;
 }
 
-public static String LSR(String operand1,String shamt) {
+private static String LSR(String operand1,String shamt) {
 	   int i = Integer.parseInt(operand1, 2);
 	   String shiftedi =toBinary(Integer.toBinaryString(i>>>Integer.parseInt(shamt,2)),5);
 	   
 	   return shiftedi;
 }
-public static String MOVR(String operand1,String imm ) {
+private static String MOVR(String operand1,String imm ) {
 	return ADD(operand1,imm);
 }
 
-public static String MOVM(String operand1,String imm ) {
+private static String MOVM(String operand1,String imm ) {
 	return ADD(operand1,imm);
 }
 
 
 
+private static void pipeLine() {
+	int maxCycles=mp+((mp-1)*2);
+	int count=0;
+	int ID_count=0;
+	int EX_count=0;
+
+		
+	while(cycles<=maxCycles) {
+		System.out.println("cycle number : "+cycles);	
+		
+	if(phase[4]!=null){
+		System.out.println("instruction "+phase[4].id + " finished execution");
+		phase[4]=null;
+	}
+	
+	if(phase[3]!=null) {
+		System.out.println("instruction "+phase[3].id + " is being executed in WB stage");
+		WB(phase[3]);
+		phase[4]=phase[3];
+		phase[3]=null;
+	}	
+	if(phase[2]!=null) {
+		EX_count++;
+		if(EX_count==2) {
+		System.out.println("instruction "+phase[2].id + " is being executed in MEM stage");
+		EX_count=0;
+		MEM(phase[2]);
+		phase[3]=phase[2];
+		phase[2]=null;
+		}
+		else
+			System.out.println("instruction "+phase[2].id + " is being executed in EXECUTE stage");
+	}
+	
+	if(phase[1]!=null) {
+		
+		ID_count++;
+	
+		if(ID_count==2) {
+		System.out.println("instruction "+phase[1].id + " is being executed in EXECUTE stage");
+		ID_count=0;
+		Execute(phase[1]);
+		phase[2]=phase[1];
+		phase[1]=null;	
+	}
+		else
+			System.out.println("instruction "+phase[1].id + " is being executed in DECODE stage");
+
+	}
+	
+	if(phase[0]!=null) {
+		System.out.println("instruction "+phase[0].id + " is being executed in DECODE stage");
+		InstructionDecode(phase[0]);
+		phase[1]=phase[0];
+		phase[0]=null;
+	}	
+	
+	if(count!=mp&&cycles%2!=0) {
+		Instruction I = InstructionFetch();
+		phase[0]=I;
+		System.out.println("instruction "+phase[0].id + " is being executed in FETCH stage");
+
+	
+		count++;
+	}
+	
+	
+
+	cycles++;
+	System.out.println("------------------------");
+		
+	}
+	
+		
+		
+		
+		
+		
+		
+}
 
 
 
 	public static void main(String[] args) {
 
 		readFile("Assembly test.txt");
-		registers[2]="00010";
+		registers[2]="00100";
 		registers[3]="00010";
-	   InstructionFetch();
+	
+        pipeLine();
+    	System.out.println(registers[1]);
+    	System.out.println(registers[4]);
+    	System.out.println(registers[5]);
+    	System.out.println(registers[6]);
+    	System.out.println(registers[7]);
+	
 
-//	    
-//		System.out.println(LSL("00100","0000000000001"));
 	   
 		
 	
