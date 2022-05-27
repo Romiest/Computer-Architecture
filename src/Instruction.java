@@ -6,7 +6,7 @@ public class Instruction {
        String rs="";      
        String rt ="";     
        String rd ="";      
-       String shamt="" ;   
+       String shamt="";   
        String imm ="";    
        String address =""; 
        String rs_value="";
@@ -16,5 +16,9 @@ public class Instruction {
            id=count;
            count++;
                    
+       }
+       
+       public  String toString() {
+    	   return this.inst;
        }
 }
