@@ -12,6 +12,7 @@ public class Processor {
 	static int cycles = 1;
 	static Instruction[] phase = new Instruction[5];
 	static boolean JEQ=false;
+	
 
 	public static void readFile(String filename) {
 		registers[0] = "00000000000000000000000000000000";
@@ -37,6 +38,8 @@ public class Processor {
 	public static void parse(String data) {
 		String[] splitted = data.split(" ");
 		String instruction = "";
+		
+		
 		switch (splitted[0]) {
 		case "ADD":
 			instruction = "0000";
@@ -111,21 +114,36 @@ public class Processor {
 		I.inst = instruction;
 		memory[mp] = I;
 		mp++;
-	}
+		}
+	
 
 	public static Instruction InstructionFetch() {
 		
 		Instruction instruction = (Instruction) memory[Integer.parseInt(pc, 2)];
+			if(instruction!=null) {
 		int temp = Integer.parseInt(pc, 2);
 
 		temp++;
 		pc = toBinary(Integer.toBinaryString(temp), 32);
 	
 		return instruction;
+			}
+			return null;
 
 	}
 
 	public static void InstructionDecode(Instruction I) {
+	
+		  I.opcode=""; 
+		  I.rs="";      
+		  I.rt ="";     
+		  I.rd ="";      
+		  I.shamt="";   
+		  I.imm ="";    
+		  I.address =""; 
+		  I. rs_value="";
+		  I. rt_value="";
+		  I. temp="";
 
 		for (int i = 0; i < 4; i++) {
 			I.opcode += I.inst.charAt(i);
@@ -157,25 +175,20 @@ public class Processor {
 			I.address += I.inst.charAt(i);
 		}
 
-		if (Integer.parseInt(I.rs, 2) == 0) {
-			I.rs_value = "00000000000000000000000000000000";
-		}
-
-		else {
+	
+			
 			I.rs_value = registers[Integer.parseInt(I.rs, 2)];
 
-		}
 
-		if (Integer.parseInt(I.rt, 2) == 0) {
-			I.rt_value = "00000000000000000000000000000000";
-		} else {
 			I.rt_value = registers[Integer.parseInt(I.rt, 2)];
-		}
-
+		
+if(I.opcode.equals("0100")||I.opcode.equals("0111"))		
+I.temp=pc;
 	}
+	
 
 	private static void Execute(Instruction I) {
-
+		
 	
 
 		switch (I.opcode) {
@@ -192,7 +205,8 @@ public class Processor {
 			I.temp = MOVI(I.imm);
 			break;
 		case "0100":
-		     JEQ(registers[Integer.parseInt(I.rd, 2)], I.rs_value, I.imm);
+		
+		     JEQ(registers[Integer.parseInt(I.rd, 2)], I.rs_value, I.imm,I.temp);
 			break;
 		case "0101":
 			I.temp = AND(I.rs_value, I.rt_value);
@@ -201,7 +215,8 @@ public class Processor {
 			I.temp = XORI(I.rs_value, I.imm);
 			break;
 		case "0111":
-		             JMP(I.address);
+			
+		             JMP(I.address,I.temp);
 			break;
 		case "1000":
 			I.temp = LSL(I.rs_value, I.shamt);
@@ -220,10 +235,10 @@ public class Processor {
 	}
 
 	private static void MEM(Instruction I) {
-		if (I.rd.equals("00000")) {
+		
+		
+		 
 
-			return;
-		}
 
 		if (I.opcode.equals("1010")) {
 			I.temp = (String) memory[Integer.parseInt(I.temp, 2)];
@@ -232,8 +247,21 @@ public class Processor {
 		else if (I.opcode.equals("1011")) {
 				if(Integer.parseInt(I.temp, 2)<2048&&Integer.parseInt(I.temp, 2)>1023) {
 			memory[Integer.parseInt(I.temp, 2)] = registers[Integer.parseInt(I.rd, 2)];
-			System.out.println("value in Memory address " + Integer.parseInt(I.temp, 2) + " has been updated to "+
-			registers[Integer.parseInt(I.rd, 2)]);
+			long num;
+			String value=registers[Integer.parseInt(I.rd, 2)];
+			if (value.charAt(0) == '1') {
+
+				String h = "";
+				for (int i = 0; i < value.length(); i++) {
+					h += value.charAt(i) == '0' ? '1' : '0';
+				}
+				num = (Long.parseLong(h, 2) + 1) * -1;
+
+			} else {
+				num = Long.parseLong(value, 2);
+
+			}
+			System.out.println("value in Memory address " + Integer.parseInt(I.temp, 2) + " has been updated to "+num);
 				}
 				else {
 			
@@ -244,6 +272,8 @@ public class Processor {
 	}
 
 	private static void WB(Instruction I) {
+		
+		
 		
 		if (I.opcode.equals("1011")||I.opcode.equals("0111")||I.opcode.equals("0100")) {
 			
@@ -257,8 +287,22 @@ public class Processor {
 				return;
 			}
 			else {
+				Long num;
 				registers[Integer.parseInt(I.rd, 2)] = I.temp;
-				System.out.println("R" + Integer.parseInt(I.rd, 2) + "'s value has been udpated to " + I.temp);
+				String value=I.temp;
+				if (value.charAt(0) == '1') {
+
+					String h = "";
+					for (int i = 0; i < value.length(); i++) {
+						h += value.charAt(i) == '0' ? '1' : '0';
+					}
+					num = (Long.parseLong(h, 2) + 1) * -1;
+
+				} else {
+					num= Long.parseLong(value, 2);
+
+				}
+				System.out.println("R" + Integer.parseInt(I.rd, 2) + "'s value has been udpated to " + num);
 			}
 		
 	
@@ -389,13 +433,13 @@ public class Processor {
 
 	}
 
-	private static void JEQ(String rs, String rt, String imm) {
+	private static void JEQ(String rs, String rt, String imm,String pcval) {
 		String res = "";
 		int temp = 0;
 
 		if (rs.equals(rt)) {
 			JEQ=true;
-			temp = Integer.parseInt(pc, 2) + Integer.parseInt(imm, 2);
+			temp = Integer.parseInt(pcval, 2) + Integer.parseInt(imm, 2);
 			res = toBinary(Integer.toBinaryString(temp),32);
 				pc=res;
 				
@@ -483,18 +527,18 @@ public class Processor {
 
 	}
 
-	private static void JMP(String address) {
+	private static void JMP(String address,String pcval) {
 	
 		String temp = "";
 		for (int i = 1; i <=4; i++) {
-			temp += pc.charAt(i);
+			temp += pcval.charAt(i);
 			
 		}
 		
 		temp += address;
 	
 		pc=temp;
-	
+		
 	}
 
 	private static String LSL(String operand1, String shamt) {
@@ -545,7 +589,7 @@ public class Processor {
 
 	private static String MOVM(String operand1, String imm) {
 		String result = ADD(operand1,imm) ;
-		System.out.println(Integer.parseInt(result,2));
+
 		String res = toBinary(result, 11);
 
 		return res;
@@ -572,7 +616,7 @@ public class Processor {
 			}
 
 			if (phase[3] != null) {
-				System.out.println("instruction " + phase[3].id + " is being executed in WB stage");
+				System.out.println("instruction " + phase[3].id + " is in the WB stage");
 				WB(phase[3]);
 				phase[4] = phase[3];
 				phase[3] = null;
@@ -585,7 +629,7 @@ public class Processor {
 			if (phase[2] != null) {
 				EX_count++;
 				if (EX_count == 2) {
-					System.out.println("instruction " + phase[2].id + " is being executed in MEM stage");
+					System.out.println("instruction " + phase[2].id + " is in the MEM stage");
 					if(phase[2].opcode.equals("0111")||JEQ){// flushing out
 						phase[1]=null;
 						phase[0]=null;
@@ -606,7 +650,7 @@ public class Processor {
 					phase[2] = null;
 				} else {
 					
-					System.out.println("instruction " + phase[2].id + " is being executed in EXECUTE stage");
+					System.out.println("instruction " + phase[2].id + " is in the EXECUTE stage");
 					if(!phase[2].opcode.equals("0111")&&!phase[2].opcode.equals("0100")) {
 						Execute(phase[2]);	
 					}
@@ -623,17 +667,17 @@ public class Processor {
 				ID_count++;
 
 				if (ID_count == 2) {
-					System.out.println("instruction " + phase[1].id + " is being executed in EXECUTE stage");
+					System.out.println("instruction " + phase[1].id + " is in the  EXECUTE stage");
 					ID_count = 0;
 					phase[2] = phase[1];
 					phase[1] = null;
 				} else
-					System.out.println("instruction " + phase[1].id + " is being executed in DECODE stage");
+					System.out.println("instruction " + phase[1].id + " is in the DECODE stage");
 
 			}
 
 			if (phase[0] != null) {
-				System.out.println("instruction " + phase[0].id + " is being executed in DECODE stage");
+				System.out.println("instruction " + phase[0].id + " is in the DECODE stage");
 				InstructionDecode(phase[0]);
 				phase[1] = phase[0];
 				phase[0] = null;
@@ -648,7 +692,7 @@ public class Processor {
 			
 				}
 				phase[0] = I;
-				System.out.println("instruction " + phase[0].id + " is being executed in FETCH stage");
+				System.out.println("instruction " + phase[0].id + " is in the FETCH stage");
 
 			
 			}
@@ -658,7 +702,6 @@ public class Processor {
 				}
 			cycles++;
 			System.out.println("------------------------");
-
 		}
 		
 		
@@ -668,22 +711,59 @@ public class Processor {
 		System.out.println("------------------------");
 		for (int i = 0; i < registers.length; i++) {
 			if (registers[i] != null) {
-				System.out.println("R" + i + " = " + registers[i]);
+				Long num;
+				String I = (String)registers[i];
+			
+				if(I.charAt(0)=='1'){
+					String h = "";
+					for (int t = 0; t<I.length(); t++) {
+						h += I.charAt(t) =='0'?'1':'0';
+					
+					}
+					
+					num= (Long.parseLong(h,2) + 1)*-1;
+
+				} else {
+					num = Long.parseLong(I, 2);
+				}
+		
+				System.out.println("R" + i + " = " + num);
 				System.out.println("------------------------");
 
 			}
 		}
-		System.out.println("PC = " + pc);
+		System.out.println("PC = " + Integer.parseInt(pc,2));
 		System.out.println("------------------------------------------------");
 		
 	
 		for (int i = 0; i < memory.length; i++) {
 		String	x= i<1024 ? "(Instructions)":"(Data)";
-			if (memory[i] != null) {
+			if (memory[i] != null&&i<=1023) {
 				System.out.println("memory at address " + i + x +  "= " + memory[i]);
 				System.out.println("------------------------");
 
 			}
+			else {
+				if(memory[i]!=null) {
+				Long num;
+				String I = (String)memory[i];
+			
+				if(I.charAt(0)=='1'){
+					String h = "";
+					for (int t = 0; t<I.length(); t++) {
+						h += I.charAt(t) =='0'?'1':'0';
+					
+					}
+					
+					num= (Long.parseLong(h,2) + 1)*-1;
+
+				} else {
+					num = Long.parseLong(I, 2);
+				}
+				System.out.println("memory at address " + i + x +  "= " + num);
+				System.out.println("------------------------");
+			}
+		}
 		}
 
 	}
@@ -716,9 +796,12 @@ public static String toBinaryImm(String imm,int num) {
 	public static void main(String[] args) {
 
 		readFile("Assembly test.txt");
-		registers[2] = "00000000000000000000000000000010";
-		registers[3] = "00000000000000000000000000000011";
-		memory[1032] = "00000000000000000000000000000111";
+	//	registers[2] = "11111111111111111111111111111101";
+	//	registers[3] = "11111111111111111111111111111101";
+	//	registers[4] = "00000000000000000000000000000010";
+	//	memory[1034] = "00000000000000000000000000000111";
+		
+		
 
 		pipeLine();
 	
