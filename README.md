@@ -1,16 +1,8 @@
-# Spicy-Von-Neumann-Fillet
 
 ### A java simulation of a mini processor following the Von Neumann architecture.
 
 >Computer System & Architecture Course Project @ GUC
 
-## Tools Used
-|Tool | Description|
-|---|---|
-| Java | Programing Language|
-| JUnit4 | Testing Suite|
-|IntelliJ | IDE for Development|
-|Git & Github | Version Control|
 
 
 # Documentation
